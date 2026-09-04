@@ -1,0 +1,100 @@
+{
+  "connection": {
+    "host": "10.0.1.15",
+    "port": 3306,
+    "database": "mysql_instance_test",
+    "connect_timeout_seconds": 5.0,
+    "read_timeout_seconds": 10.0,
+    "write_timeout_seconds": 10.0,
+    "charset": "utf8mb4",
+    "ssl_mode": "disabled",
+    "ssl_ca_location": null,
+    "ssl_certificate_location": null,
+    "ssl_key_location": null,
+    "server_hostname": null
+  },
+  "authentication": {
+    "username": "test_user",
+    "password_env": "MARIADB_PASSWORD",
+    "mode": "environment"
+  },
+  "execution": {
+    "profile": "standard",
+    "suites": null,
+    "namespace": "zhuque_mysql_test",
+    "cleanup_policy": "always",
+    "fail_fast": false
+  },
+  "sql": {
+    "test_table_prefix": "instance_test",
+    "rows": 50,
+    "value_size": 256,
+    "statement_timeout_seconds": 30.0
+  },
+  "transaction": {
+    "isolation_level": "REPEATABLE READ",
+    "transaction_count": 20,
+    "rollback_ratio": 0.25
+  },
+  "concurrency": {
+    "workers": 4,
+    "connections": 4,
+    "operations": 100,
+    "max_in_flight": 8
+  },
+  "performance": {
+    "rows": 1000,
+    "workers": 4,
+    "batch_size": 50,
+    "duration_seconds": 60.0,
+    "min_tps": null,
+    "max_p95_ms": null,
+    "max_p99_ms": null,
+    "max_latency_samples": 10000
+  },
+  "permissions": {
+    "enabled": false,
+    "read_only_username": null,
+    "read_only_password_env": null,
+    "read_write_username": null,
+    "read_write_password_env": null,
+    "no_access_username": null,
+    "no_access_password_env": null
+  },
+  "replication": {
+    "enabled": false,
+    "primary_endpoint": null,
+    "replica_endpoint": null,
+    "max_replication_lag_seconds": 30.0,
+    "polling_interval_seconds": 1.0
+  },
+  "failover": {
+    "enabled": false,
+    "confirm_dedicated_environment": false,
+    "endpoint": null,
+    "duration_seconds": 60.0,
+    "polling_interval_seconds": 1.0,
+    "max_recovery_seconds": 30.0,
+    "require_observed_interruption": false
+  },
+  "soak": {
+    "duration_seconds": 0.0,
+    "workers": 3,
+    "operation_interval_seconds": 1.0,
+    "read_write_ratio": 0.7,
+    "status_interval_seconds": 10.0,
+    "drain_timeout_seconds": 30.0,
+    "max_operations": 0,
+    "max_rows": 10000,
+    "max_latency_samples": 10000
+  },
+  "expectations": {
+    "expected_server_family": "any",
+    "expected_version_prefix": null,
+    "require_tls": false,
+    "expected_charset": "utf8mb4"
+  },
+  "report": {
+    "directory": "reports"
+  }
+}

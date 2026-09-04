@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mysql-mariadb-instance-tester"
+version = "0.1.0"
+description = "Bounded MySQL and MariaDB data-plane acceptance test runner"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [{name = "Tianwen2000"}]
+dependencies = ["PyMySQL>=1.1.0,<2"]
+
+[project.scripts]
+mysql-mariadb-instance-test = "mysql_mariadb_instance_test:main"
+
+[tool.setuptools]
+py-modules = ["mysql_mariadb_instance_test"]
