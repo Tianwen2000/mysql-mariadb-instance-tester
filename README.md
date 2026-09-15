@@ -29,7 +29,7 @@ MySQL 协议和参数化 SQL，验证连接认证、读写闭环、数据类型�
 
 ### Ubuntu/Debian（推荐）
 
-Ubuntu 默认可能没有 `python` 命令，且部分环境会把 pip 指向无法同步 PyMySQL 的内部镜像。下面的命令会创建隔离虚拟环境，并在安装依赖时明确使用 PyPI：
+Ubuntu 默认使用 `python3` 命令，且部分环境会把 pip 指向无法同步 PyMySQL 的内部镜像。优先创建隔离虚拟环境，并在安装依赖时明确使用 PyPI：
 
 ```bash
 git clone https://github.com/Tianwen2000/mysql-mariadb-instance-tester.git
@@ -41,13 +41,52 @@ sudo apt install -y python3 python3-pip python3-venv ca-certificates
 python3 -m venv .venv
 source .venv/bin/activate
 
-python -m pip install --upgrade pip --index-url https://pypi.org/simple
-python -m pip install --index-url https://pypi.org/simple -r requirements.txt
-python mysql_mariadb_instance_test.py --list-suites
+python3 -m pip install --upgrade pip --index-url https://pypi.org/simple
+python3 -m pip install --index-url https://pypi.org/simple -r requirements.txt
+python3 mysql_mariadb_instance_test.py --list-suites
 ```
 
-激活 `.venv` 后，本文后续示例中的 `python` 和 `python -m pip` 都指向该虚拟环境。新的终端
-需要重新激活：
+如果安装 `python3-venv` 时出现 `python3.10-venv Depends: python3.10 (= ...)`、`held broken
+packages` 或 `ensurepip is not available`，说明系统的 Python 包版本没有对齐。先修复 APT，**不要
+使用 `sudo python3 -m venv`**：
+
+```bash
+sudo dpkg --configure -a
+sudo apt update
+apt-mark showhold
+sudo apt-mark unhold python3.10 python3.10-minimal python3.10-venv 2>/dev/null || true
+sudo apt --fix-broken install
+sudo apt full-upgrade
+sudo apt install -y python3.10 python3.10-venv
+rm -rf .venv
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+如果 `apt-cache policy python3.10 python3.10-venv` 显示两个包来自不同的 Ubuntu 源或版本，
+需要先统一 `/etc/apt/sources.list` 和 `/etc/apt/sources.list.d/` 中的 jammy/jammy-updates
+源，再重复上述修复命令。不要随意强制安装不匹配的 `python3.10-venv` 版本。
+
+### 暂时不使用虚拟环境
+
+如果当前机器暂时无法修复 `python3-venv`，项目也可以直接安装到当前用户目录。此路径不需要
+`.venv`，所有命令都使用 `python3`：
+
+```bash
+python3 -m pip install --user --index-url https://pypi.org/simple -r requirements.txt
+python3 mysql_mariadb_instance_test.py --list-suites
+```
+
+如果系统提示 `externally-managed-environment`，优先修复并使用上面的虚拟环境路径；仅在确认
+系统策略允许时才加 `--break-system-packages`：
+
+```bash
+python3 -m pip install --user --break-system-packages \
+  --index-url https://pypi.org/simple -r requirements.txt
+```
+
+只有成功执行 `python3 -m venv .venv` 并完成 `source .venv/bin/activate` 后，本文后续示例中的
+`python3` 和 `python3 -m pip` 才指向该虚拟环境。新的终端需要重新激活：
 
 ```bash
 cd ~/mysql-mariadb-instance-tester
@@ -58,24 +97,23 @@ source .venv/bin/activate
 `PyMySQL>=1.1.0,<2` 的镜像，例如：
 
 ```bash
-python -m pip install --index-url https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
+python3 -m pip install --index-url https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
 ```
 
-也可以执行 `python -m pip install --index-url https://pypi.org/simple .` 安装命令
+也可以执行 `python3 -m pip install --index-url https://pypi.org/simple .` 安装命令
 `mysql-mariadb-instance-test`。直接运行仓库内脚本则不需要安装项目本身。
 
 ## 验证依赖
 
 ```bash
-python --version
-python -c "import pymysql; print(pymysql.__version__)"
-python mysql_mariadb_instance_test.py --help
-python mysql_mariadb_instance_test.py --list-suites
+python3 --version
+python3 -c "import pymysql; print(pymysql.__version__)"
+python3 mysql_mariadb_instance_test.py --help
+python3 mysql_mariadb_instance_test.py --list-suites
 ```
 
-如果没有使用虚拟环境，把上述命令中的 `python` 改成 `python3`，并使用
-`python3 -m pip ...` 安装依赖。即使尚未安装 PyMySQL，帮助命令仍可用；真正连接数据库时才
-要求驱动。
+未使用虚拟环境时，直接使用 `python3` 和 `python3 -m pip ...`。即使尚未安装 PyMySQL，帮助
+命令仍可用；真正连接数据库时才要求驱动。
 
 ## 测试前准备
 
@@ -102,7 +140,7 @@ export MARIADB_PASSWORD='replace-with-secret'
 `--password-env MARIADB_PASSWORD`（或沿用默认配置）：
 
 ```bash
-python mysql_mariadb_instance_test.py \
+python3 mysql_mariadb_instance_test.py \
   --host 10.0.1.15 --port 3306 \
   --database mysql_instance_test \
   --username test_user \
@@ -121,7 +159,7 @@ export MARIADB_PASSWORD
 也可以不设置环境变量，让工具临时提示输入密码：
 
 ```bash
-python mysql_mariadb_instance_test.py \
+python3 mysql_mariadb_instance_test.py \
   --set authentication.mode=prompt \
   --host 10.0.1.15 --port 3306 \
   --database mysql_instance_test \
@@ -209,7 +247,7 @@ CLI 参数：
 `connectivity` 不创建表，验证 TCP、握手、用户名密码、`SELECT 1`、版本、字符集和 TLS 会话状态：
 
 ```bash
-python mysql_mariadb_instance_test.py \
+python3 mysql_mariadb_instance_test.py \
   --host 10.0.1.15 --port 3306 \
   --database mysql_instance_test \
   --username test_user --password-env MARIADB_PASSWORD \
@@ -226,7 +264,7 @@ python mysql_mariadb_instance_test.py \
 ## 标准数据面验收
 
 ```bash
-python mysql_mariadb_instance_test.py \
+python3 mysql_mariadb_instance_test.py \
   --config mysql-mariadb-test.example.json \
   --profile standard
 ```
@@ -239,7 +277,7 @@ python mysql_mariadb_instance_test.py \
 
 ```bash
 export DB_READONLY_PASSWORD='replace-with-secret'
-python mysql_mariadb_instance_test.py \
+python3 mysql_mariadb_instance_test.py \
   --config mysql-mariadb-test.example.json \
   --suites permissions \
   --set permissions.enabled=true \
@@ -255,7 +293,7 @@ python mysql_mariadb_instance_test.py \
 先不设阈值，多次运行建立同一测试机、网络、实例规格下的基线：
 
 ```bash
-python mysql_mariadb_instance_test.py \
+python3 mysql_mariadb_instance_test.py \
   --config mysql-mariadb-test.example.json \
   --profile performance \
   --set performance.rows=20000 \
@@ -280,7 +318,7 @@ python mysql_mariadb_instance_test.py \
 默认持续运行到 `Ctrl+C`：
 
 ```bash
-python mysql_mariadb_instance_test.py \
+python3 mysql_mariadb_instance_test.py \
   --config mysql-mariadb-test.example.json \
   --profile soak
 ```
@@ -288,7 +326,7 @@ python mysql_mariadb_instance_test.py \
 固定运行一小时：
 
 ```bash
-python mysql_mariadb_instance_test.py \
+python3 mysql_mariadb_instance_test.py \
   --config mysql-mariadb-test.example.json \
   --profile soak --duration-seconds 3600 \
   --set soak.workers=4 \
@@ -306,7 +344,7 @@ python mysql_mariadb_instance_test.py \
 校验 CA：
 
 ```bash
-python mysql_mariadb_instance_test.py \
+python3 mysql_mariadb_instance_test.py \
   --config mysql-mariadb-test.example.json \
   --ssl-ca /etc/ssl/certs/mariadb-ca.pem \
   --set expectations.require_tls=true \
@@ -331,7 +369,7 @@ python mysql_mariadb_instance_test.py \
 只验证主库写入后副本在时限内读到完全一致的 payload：
 
 ```bash
-python mysql_mariadb_instance_test.py \
+python3 mysql_mariadb_instance_test.py \
   --config mysql-mariadb-test.example.json \
   --suites replication \
   --set replication.enabled=true \
@@ -347,7 +385,7 @@ python mysql_mariadb_instance_test.py \
 测试系统执行切换，并验证已提交种子行在恢复后仍存在：
 
 ```bash
-python mysql_mariadb_instance_test.py \
+python3 mysql_mariadb_instance_test.py \
   --config mysql-mariadb-test.example.json \
   --suites failover \
   --set failover.enabled=true \
@@ -407,10 +445,10 @@ database、username 和密码环境变量名称，以便定位测试目标；这
 默认测试离线运行，不连接真实数据库：
 
 ```bash
-python -m pip install -r requirements-dev.txt
-python -m compileall -q .
-python -m unittest discover -s tests -v
-python -O -m unittest discover -s tests -v
+python3 -m pip install --index-url https://pypi.org/simple -r requirements-dev.txt
+python3 -m compileall -q .
+python3 -m unittest discover -s tests -v
+python3 -O -m unittest discover -s tests -v
 ```
 
 只有显式设置以下环境变量时才运行真实集成测试：
@@ -425,7 +463,7 @@ export MARIADB_PASSWORD_ENV=MARIADB_PASSWORD
 export MARIADB_PASSWORD='replace-with-secret'
 # 可选：export MARIADB_SSL_CA=/path/to/ca.pem
 
-python -m unittest tests.test_integration -v
+python3 -m unittest tests.test_integration -v
 ```
 
 集成测试只运行 connectivity、SQL roundtrip 和 transaction，并在 `finally` 中清理本轮测试表。
