@@ -27,15 +27,42 @@ MySQL 协议和参数化 SQL，验证连接认证、读写闭环、数据类型�
 
 要求 Python 3.8+。PyMySQL 是纯 Python 驱动，不要求本机编译器或 MySQL 客户端动态库。
 
+### Ubuntu/Debian（推荐）
+
+Ubuntu 默认可能没有 `python` 命令，且部分环境会把 pip 指向无法同步 PyMySQL 的内部镜像。下面的命令会创建隔离虚拟环境，并在安装依赖时明确使用 PyPI：
+
 ```bash
 git clone https://github.com/Tianwen2000/mysql-mariadb-instance-tester.git
 cd mysql-mariadb-instance-tester
-python -m pip install -r requirements.txt
+
+sudo apt update
+sudo apt install -y python3 python3-pip python3-venv ca-certificates
+
+python3 -m venv .venv
+source .venv/bin/activate
+
+python -m pip install --upgrade pip --index-url https://pypi.org/simple
+python -m pip install --index-url https://pypi.org/simple -r requirements.txt
 python mysql_mariadb_instance_test.py --list-suites
 ```
 
-也可以执行 `python -m pip install .`，安装命令 `mysql-mariadb-instance-test`。本文示例均使用
-仓库内脚本，便于直接核对版本。
+激活 `.venv` 后，本文后续示例中的 `python` 和 `python -m pip` 都指向该虚拟环境。新的终端
+需要重新激活：
+
+```bash
+cd ~/mysql-mariadb-instance-tester
+source .venv/bin/activate
+```
+
+如果公司网络不能访问官方 PyPI，可将上面两个 `--index-url` 替换为组织批准且已同步
+`PyMySQL>=1.1.0,<2` 的镜像，例如：
+
+```bash
+python -m pip install --index-url https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
+```
+
+也可以执行 `python -m pip install --index-url https://pypi.org/simple .` 安装命令
+`mysql-mariadb-instance-test`。直接运行仓库内脚本则不需要安装项目本身。
 
 ## 验证依赖
 
@@ -46,7 +73,9 @@ python mysql_mariadb_instance_test.py --help
 python mysql_mariadb_instance_test.py --list-suites
 ```
 
-即使尚未安装 PyMySQL，后两个帮助命令仍可用；真正连接数据库时才要求驱动。
+如果没有使用虚拟环境，把上述命令中的 `python` 改成 `python3`，并使用
+`python3 -m pip ...` 安装依赖。即使尚未安装 PyMySQL，帮助命令仍可用；真正连接数据库时才
+要求驱动。
 
 ## 测试前准备
 
@@ -61,10 +90,43 @@ python mysql_mariadb_instance_test.py --list-suites
 5. 如果测试复制，准备明确的主库和只读副本数据面地址；如果观察故障切换，必须使用专用高可用
    测试环境，并由操作者在工具外部触发切换。
 
-先设置密码环境变量，不要把密码放进 JSON、命令历史或 Git：
+先设置密码环境变量，不要把密码放进 JSON 或 Git。下面的 `replace-with-secret` 只是占位符，
+必须替换成 MariaDB 数据库账号的实际密码（不是朱雀云控制台登录密码）；`export` 只对当前
+终端会话有效：
 
 ```bash
 export MARIADB_PASSWORD='replace-with-secret'
+```
+
+默认配置和示例配置都读取名为 `MARIADB_PASSWORD` 的变量，因此设置后还需要在测试命令中使用
+`--password-env MARIADB_PASSWORD`（或沿用默认配置）：
+
+```bash
+python mysql_mariadb_instance_test.py \
+  --host 10.0.1.15 --port 3306 \
+  --database mysql_instance_test \
+  --username test_user \
+  --password-env MARIADB_PASSWORD \
+  --profile connectivity
+```
+
+更安全的方式是不把密码直接写进 shell 历史，而是在当前终端隐藏输入：
+
+```bash
+read -r -s -p "Database password: " MARIADB_PASSWORD
+printf '\n'
+export MARIADB_PASSWORD
+```
+
+也可以不设置环境变量，让工具临时提示输入密码：
+
+```bash
+python mysql_mariadb_instance_test.py \
+  --set authentication.mode=prompt \
+  --host 10.0.1.15 --port 3306 \
+  --database mysql_instance_test \
+  --username test_user \
+  --profile connectivity
 ```
 
 PowerShell：
