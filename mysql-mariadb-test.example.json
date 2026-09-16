@@ -1,6 +1,26 @@
 {
+  "target": {
+    "instance_name": "mysql-mariadb-tester",
+    "instance_id": "tdsql-nsqnp96p",
+    "region": "TCE-东京",
+    "engine": null,
+    "engine_version": null,
+    "instance_status_at_capture": "运行中",
+    "instance_type": "主实例",
+    "edition": "标准版（一主一备）",
+    "architecture": "X86",
+    "private_network": "test - test1",
+    "availability_zones": [],
+    "node_count": null,
+    "storage_gb": null,
+    "backup_log_storage_gb": null,
+    "charset": "UTF8MB4",
+    "replication_mode": null,
+    "connection_source": "实例详情页内网地址",
+    "captured_at": "2026-09-15"
+  },
   "connection": {
-    "host": "10.0.1.15",
+    "host": "10.0.0.15",
     "port": 3306,
     "database": "mysql_instance_test",
     "connect_timeout_seconds": 5.0,
@@ -14,7 +34,7 @@
     "server_hostname": null
   },
   "authentication": {
-    "username": "test_user",
+    "username": "mysql-Mariadb-test1",
     "password_env": "MARIADB_PASSWORD",
     "mode": "environment"
   },

@@ -40,6 +40,26 @@ IDENTIFIER_PATTERN = re.compile(r"^[A-Za-z0-9_]+$")
 ENV_NAME_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 DEFAULT_CONFIG: dict[str, Any] = {
+    "target": {
+        "instance_name": None,
+        "instance_id": None,
+        "region": None,
+        "engine": None,
+        "engine_version": None,
+        "instance_status_at_capture": None,
+        "instance_type": None,
+        "edition": None,
+        "architecture": None,
+        "private_network": None,
+        "availability_zones": [],
+        "node_count": None,
+        "storage_gb": None,
+        "backup_log_storage_gb": None,
+        "charset": None,
+        "replication_mode": None,
+        "connection_source": None,
+        "captured_at": None,
+    },
     "connection": {
         "host": "127.0.0.1",
         "port": 3306,
@@ -348,6 +368,37 @@ def validate_config(config: dict[str, Any], *, require_target: bool = True) -> N
     authentication = config["authentication"]
     execution = config["execution"]
     expectations = config["expectations"]
+    target = config["target"]
+    for option in (
+        "instance_name",
+        "instance_id",
+        "region",
+        "engine",
+        "engine_version",
+        "instance_status_at_capture",
+        "instance_type",
+        "edition",
+        "architecture",
+        "private_network",
+        "charset",
+        "replication_mode",
+        "connection_source",
+        "captured_at",
+    ):
+        value = target.get(option)
+        if value is not None and (not isinstance(value, str) or not value.strip()):
+            raise ValueError(f"target.{option} must be null or a non-empty string")
+    availability_zones = target.get("availability_zones")
+    if not isinstance(availability_zones, list) or not all(
+        isinstance(item, str) and item.strip() for item in availability_zones
+    ):
+        raise ValueError("target.availability_zones must be an array of non-empty strings")
+    for option in ("node_count", "storage_gb", "backup_log_storage_gb"):
+        value = target.get(option)
+        if value is not None and (
+            isinstance(value, bool) or not isinstance(value, int) or value <= 0
+        ):
+            raise ValueError(f"target.{option} must be null or a positive integer")
     host = connection.get("host")
     database = connection.get("database")
     username = authentication.get("username")
@@ -636,6 +687,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--database", help="Dedicated test database/schema")
     parser.add_argument("--username", help="Database username override")
     parser.add_argument(
+        "--instance-name", help="Instance name metadata override; does not resolve DNS"
+    )
+    parser.add_argument(
         "--password-env", help="Environment variable containing the password"
     )
     parser.add_argument("--ssl-ca", help="CA certificate path; enables verify_ca mode")
@@ -670,6 +724,7 @@ def apply_cli_overrides(config: dict[str, Any], args: argparse.Namespace) -> Non
         section, option, value = parse_config_override(expression)
         config[section][option] = value
     mapping = {
+        "instance_name": ("target", "instance_name"),
         "host": ("connection", "host"),
         "port": ("connection", "port"),
         "database": ("connection", "database"),
@@ -2268,10 +2323,13 @@ def write_report(
         "started_at": runner.started_at,
         "completed_at": utc_now(),
         "target": {
+            "instance_name": config["target"].get("instance_name"),
+            "instance_id": config["target"].get("instance_id"),
             "host": config["connection"]["host"],
             "port": config["connection"]["port"],
             "database": config["connection"]["database"],
             "username": config["authentication"]["username"],
+            "metadata": copy.deepcopy(config["target"]),
         },
         "selected_suites": list(selected_suites),
         "summary": summary,
@@ -2325,7 +2383,7 @@ def main(argv: list[str] | None = None) -> int:
         if pymysql is None:
             raise ValueError(
                 "PyMySQL is not installed; install dependencies with "
-                "python -m pip install -r requirements.txt"
+                "python3 -m pip install -r requirements.txt"
             )
         password = resolve_password(config)
     except ValueError as exc:

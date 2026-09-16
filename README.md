@@ -141,9 +141,9 @@ export MARIADB_PASSWORD='replace-with-secret'
 
 ```bash
 python3 mysql_mariadb_instance_test.py \
-  --host 10.0.1.15 --port 3306 \
+  --host 10.0.0.15 --port 3306 \
   --database mysql_instance_test \
-  --username test_user \
+  --username mysql-Mariadb-test1 \
   --password-env MARIADB_PASSWORD \
   --profile connectivity
 ```
@@ -161,9 +161,9 @@ export MARIADB_PASSWORD
 ```bash
 python3 mysql_mariadb_instance_test.py \
   --set authentication.mode=prompt \
-  --host 10.0.1.15 --port 3306 \
+  --host 10.0.0.15 --port 3306 \
   --database mysql_instance_test \
-  --username test_user \
+  --username mysql-Mariadb-test1 \
   --profile connectivity
 ```
 
@@ -184,6 +184,7 @@ CLI 参数：
 | --- | --- |
 | `--config PATH` | JSON 配置文件；未声明项继承内置默认值 |
 | `--host HOST` / `--port PORT` | 数据库连接地址和端口 |
+| `--instance-name NAME` | 实例名元数据覆盖；只写入报告，不负责把实例名解析成地址 |
 | `--database NAME` | 已有的专用测试 database/schema |
 | `--username USER` | 登录用户名 |
 | `--password-env NAME` | 保存密码的环境变量名称，不是密码本身 |
@@ -220,27 +221,62 @@ CLI 参数：
 | `soak.max_rows` | `10000` | 固定 upsert 槽位数，防止长期运行时测试表无限增长 |
 | `soak.max_latency_samples` | `10000` | 固定长度延迟窗口，内存不随总操作数增长 |
 
+示例配置中的 `target` 区块记录朱雀云实例详情页看到的实例元数据，包括实例名、地域、引擎
+版本、网络、可用区、节点数、存储、字符集和复制模式。它们用于报告和人工核对，不会替代
+`connection.host`；实际 TCP 连接仍使用实例详情页的内网/公网地址和端口。密码从不写入 JSON，
+只通过 `MARIADB_PASSWORD` 或交互式提示提供。
+
 全部默认项及类型可查看
 [`mysql-mariadb-test.example.json`](mysql-mariadb-test.example.json)。未知 section、未知 option、
 错误类型、越界数据量、不完整 TLS 证书对和危险并发组合都会在连接前拒绝，并给出具体配置路径。
 
 ## 在朱雀云控制台查找参数
 
-从 <https://console.zhuque.jp/mariadb/ins/create> 进入 MariaDB 产品后，应在**已有实例**的详情页
-查找数据面连接参数，不要在本工具中创建实例。控制台版本和实例类型不同，菜单名称可能略有差异：
+从 <https://console.zhuque.jp/mariadb/ins/create> 进入 MariaDB 产品后，应进入**已有实例**的
+“实例详情”页查找参数，不要在本工具中创建实例。当前示例 JSON 按实例
+`mysql-mariadb-tester`（实例 ID：`tdsql-nsqnp96p`）的详情页填写；控制台版本和实例类型不同，菜单名称可能略有差异：
 
 | 本工具参数 | 通常查找位置 |
 | --- | --- |
-| `--host`、`--port` | 实例详情的“连接信息/内外网地址”，并确认“网络访问/白名单/安全组”允许测试机访问 |
-| `--database` | 实例内由管理员准备的专用测试 database；它不是实例名称 |
-| `--username` | “账号管理/数据库账号”中获得的专用测试账号 |
+| `target.instance_name` / `target.instance_id` | 实例详情顶部的实例名称和实例 ID；仅作为元数据 |
+| `--host`、`--port` | 实例详情中的“内网地址/内网端口”或公网连接地址/端口，并确认“数据安全性/安全组”允许测试机访问 |
+| `target.region`、`engine_version`、`node_count` | 实例详情中的地域、数据库版本和节点数量 |
+| `target.private_network`、`availability_zones` | 实例详情中的所属网络和可用性信息 |
+| `target.storage_gb`、`backup_log_storage_gb` | 实例详情中的配置容量、备份/日志空间 |
+| `--database` | 实例内由管理员通过 DMC、SQL 窗口或数据库客户端准备的专用测试 database；它不是实例名称 |
+| `--username` | “账号管理/数据库账号”中获得的专用测试账号；远程 Ubuntu 连接不能使用仅限 `127.0.0.1` 的账号 |
 | `--password-env` | 本地环境变量名；密码值来自账号创建或重置流程，不应写入配置 |
 | `--ssl-ca` | “SSL 设置/下载证书/连接指引”提供的 CA 文件 |
 | 主库/从库地址 | “只读实例/复制实例/连接信息”中分别取得的数据面地址 |
 | 高可用地址 | “高可用配置/连接信息”中的稳定接入地址；本工具不操作切换按钮 |
 
-内网和公网地址同时存在时，使用测试机所在网络真正可达的地址。网络白名单、安全组、VPC 路由
+当前最新实例详情截图显示：实例名为 `mysql-mariadb-tester`、实例 ID 为 `tdsql-nsqnp96p`、
+状态为“运行中”、连接地址为 `10.0.0.15:3306`、字符集为 UTF8MB4、标准版一主一备、
+所属网络为 `test - test1`、CPU 架构为 X86；示例配置按这些详情填写。截图未展示的引擎小版本、
+存储容量、备份/日志空间、可用区和复制模式不在示例配置中强行假设，应以最新实例详情为准。
+
+账号页面显示的主机是 MySQL 账号允许的客户端来源，不是数据库实例地址。`127.0.0.1` 只允许
+实例本机连接；从 Ubuntu 远程测试应使用 Ubuntu 来源 IP 或 `%`。网络白名单、安全组、VPC 路由
 和 DNS 均属于运行前提，本工具只报告数据面连接结果，不读取控制台规则。
+
+### 准备专用测试 database
+
+`mysql_instance_test` 是实例内部的 database/schema，不是朱雀云实例名。当前朱雀云页面未显示
+明显的 DMC/库管理入口时，可使用已有管理员数据库账号通过 SQL 窗口或 Ubuntu 客户端创建：
+
+```sql
+CREATE DATABASE IF NOT EXISTS `mysql_instance_test`
+  CHARACTER SET utf8mb4;
+
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER
+ON `mysql_instance_test`.* TO 'mysql-Mariadb-test1'@'%';
+
+FLUSH PRIVILEGES;
+```
+
+脚本不会创建或删除整个 database，只会在该专用 database 中创建、使用并按
+`execution.cleanup_policy` 清理本轮生成的测试表。账号管理页用于创建账号和修改对象级权限；
+“实例详情”页用于取得连接地址、端口和实例元数据。
 
 ## 快速连接测试
 
@@ -248,9 +284,9 @@ CLI 参数：
 
 ```bash
 python3 mysql_mariadb_instance_test.py \
-  --host 10.0.1.15 --port 3306 \
+  --host 10.0.0.15 --port 3306 \
   --database mysql_instance_test \
-  --username test_user --password-env MARIADB_PASSWORD \
+  --username mysql-Mariadb-test1 --password-env MARIADB_PASSWORD \
   --profile connectivity
 ```
 
@@ -455,10 +491,10 @@ python3 -O -m unittest discover -s tests -v
 
 ```bash
 export MARIADB_INTEGRATION=1
-export MARIADB_HOST=10.0.1.15
+export MARIADB_HOST=10.0.0.15
 export MARIADB_PORT=3306
 export MARIADB_DATABASE=mysql_instance_test
-export MARIADB_USER=test_user
+export MARIADB_USER=mysql-Mariadb-test1
 export MARIADB_PASSWORD_ENV=MARIADB_PASSWORD
 export MARIADB_PASSWORD='replace-with-secret'
 # 可选：export MARIADB_SSL_CA=/path/to/ca.pem

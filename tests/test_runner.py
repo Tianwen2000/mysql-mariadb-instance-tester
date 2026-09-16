@@ -272,6 +272,8 @@ class ConfigTests(unittest.TestCase):
             [
                 "--port",
                 "3307",
+                "--instance-name",
+                "instance-override",
                 "--database",
                 "acceptance",
                 "--set",
@@ -282,6 +284,7 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(config["connection"]["host"], "db.internal")
         self.assertEqual(config["connection"]["port"], 3307)
         self.assertEqual(config["connection"]["database"], "acceptance")
+        self.assertEqual(config["target"]["instance_name"], "instance-override")
         self.assertEqual(config["concurrency"]["workers"], 2)
 
     def test_unknown_config_and_bad_ranges_are_rejected(self) -> None:
